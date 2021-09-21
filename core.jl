@@ -77,3 +77,34 @@ function currentdensity!(J, Eω, E2ω)
   end
   J
 end
+
+
+function magnetic_field(J, x, y)
+  B = similar(J)
+  magnetic_field!(B, J, x, y)
+end
+function magnetic_field!(B, J, x, y)
+  dA = step(x) * step(y)
+  for I in CartesianIndices(B)
+    B[I] = _magnetic_field(J, I[1], I[2], x, y)*dA*1e-7
+  end
+  B
+end
+function _magnetic_field(J::AbstractMatrix, i, j, x, y)
+  T = eltype(eltype(J))
+  Bx, By, Bz = zero(T), zero(T), zero(T)
+  xi, yj = x[i], y[j]
+  for (l, yl) in enumerate(y)
+    for (k, xk) in enumerate(x)
+      l == j && k == i && continue
+      Jx, Jy, Jz = J[k,l]
+      Δx = xk - xi
+      Δy = yl - yj
+      ξ = sqrt(Δx^2 + Δy^2)^3
+      Bx += -Jz*Δy/ξ
+      By += Jz*Δx/ξ
+      Bz += (Jx*Δy - Jy*Δx)/ξ
+    end
+  end
+  @SVector[Bx, By, Bz]
+end
