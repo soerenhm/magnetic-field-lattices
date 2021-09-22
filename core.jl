@@ -90,6 +90,32 @@ function magnetic_field!(B, J, x, y)
   end
   B
 end
+
+function magnetic_field(J, x, y, z)
+  B = similar(J)
+  magnetic_field!(B, J, x, y, z)
+end
+function magnetic_field!(B, J, x, y, z)
+  for I in CartesianIndices(B)
+    B[I] = _magnetic_field(J, I, x, y, z)*1e-7
+  end
+end
+
+function _magnetic_field(J, I, x, y, z)
+  T = eltype(J)
+  i, j, k = Tuple(I)
+  xi, yj, zk = x[i], y[j], z[k]
+  Bx, By, Bz = zero(T), zero(T), zero(T)
+  for K in CartesianIndices(J)
+    K == CartesianIndex(i,j,k) && continue
+    Δx, Δy, Δz = x[K[1]]-xi, y[K[2]]-yj, z[K[3]]-zk
+    ξ = sqrt(Δx^2 + Δy^2 + Δz^2)
+    Bx += (Jy*Δz - Jz*Δy)/ξ
+    By += (Jz*Δx - Jx*Δz)/ξ
+    Bz += (Jx*Δy - Jy*Δx)/ξ
+  end
+  @SVector[Bx, By, Bz]
+end
 function _magnetic_field(J::AbstractMatrix, i, j, x, y)
   T = eltype(eltype(J))
   Bx, By, Bz = zero(T), zero(T), zero(T)
